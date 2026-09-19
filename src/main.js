@@ -3,14 +3,15 @@ const fs = require('fs');
 const path = require('path');
 const { execFile } = require('child_process');
 const { promisify } = require('util');
+const bundledPrompts = require('./default-prompts.json');
 
 const execFileAsync = promisify(execFile);
 app.setName('PromptClip');
 let picker;
 let tray;
 
-const starterPrompts = [
-  { id: 'welcome', title: 'Welcome', body: 'Add a prompt, or import your Apple Notes from the right-click menu.', source: 'PromptClip' }
+const starterPrompts = bundledPrompts.length ? bundledPrompts : [
+  { id: 'welcome', title: 'Welcome', body: 'Add a prompt from the + button.', source: 'PromptClip' }
 ];
 
 function storePath() { return path.join(app.getPath('userData'), 'prompts.json'); }
@@ -64,11 +65,16 @@ end tell`;
       const [title, ...body] = row.split(us);
       return { id: `notes-${Date.now()}-${index}`, title: title?.trim() || `Untitled note ${index + 1}`, body: body.join(us).replace(/<[^>]*>/g, '').trim(), source: 'Apple Notes' };
     }).filter((prompt) => prompt.body);
-    const manual = readPrompts().filter((prompt) => prompt.source !== 'Apple Notes' && prompt.id !== 'welcome');
+    const manual = readPrompts().filter((prompt) => prompt.source === 'Manual');
     writePrompts([...imported, ...manual]);
     sendPrompts();
     return { count: imported.length };
-  } catch (error) { return { error: error.message || 'Could not read Apple Notes.' }; }
+  } catch {
+    const manual = readPrompts().filter((prompt) => prompt.source === 'Manual');
+    writePrompts([...bundledPrompts, ...manual]);
+    sendPrompts();
+    return { count: bundledPrompts.length, fallback: true };
+  }
 }
 
 function createTray() {
