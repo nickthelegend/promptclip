@@ -72,7 +72,7 @@ end tell`;
 }
 
 function createTray() {
-  const icon = nativeImage.createFromDataURL('data:image/svg+xml;base64,' + Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="16" height="16" rx="4" fill="%237c3aed"/><path d="M4 4h8v2H4zm0 3h8v2H4zm0 3h5v2H4z" fill="white"/></svg>').toString('base64'));
+  const icon = nativeImage.createFromPath(path.join(__dirname, 'assets', 'promptclip-icon.png')).resize({ width: 18, height: 18 });
   tray = new Tray(icon);
   tray.setToolTip('PromptClip');
   tray.setContextMenu(Menu.buildFromTemplate([

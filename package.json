@@ -16,6 +16,7 @@
   "build": {
     "appId": "com.promptclip.app",
     "productName": "PromptClip",
+    "icon": "build/promptclip.png",
     "files": [
       "src/**/*",
       "package.json",
@@ -27,6 +28,7 @@
         "zip"
       ],
       "category": "public.app-category.productivity",
+      "icon": "build/promptclip.icns",
       "extendInfo": {
         "NSAppleEventsUsageDescription": "PromptClip needs access to Apple Notes to import the prompts you choose to keep locally."
       }
