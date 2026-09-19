@@ -4,6 +4,7 @@ const path = require('path');
 const { execFile } = require('child_process');
 const { promisify } = require('util');
 const bundledPrompts = require('./default-prompts.json');
+const { cleanPromptText } = require('./prompt-cleaner');
 
 const execFileAsync = promisify(execFile);
 app.setName('PromptClip');
@@ -90,7 +91,7 @@ function createTray() {
 }
 
 ipcMain.handle('prompts:list', () => readPrompts());
-ipcMain.handle('prompts:copy', (_event, body) => { clipboard.writeText(body); picker.hide(); return true; });
+ipcMain.handle('prompts:copy', (_event, body) => { clipboard.writeText(cleanPromptText(body)); picker.hide(); return true; });
 ipcMain.handle('prompts:save', (_event, prompt) => {
   const prompts = readPrompts().filter((item) => item.id !== prompt.id && item.id !== 'welcome');
   const next = { id: prompt.id || `manual-${Date.now()}`, title: prompt.title.trim(), body: prompt.body.trim(), source: 'Manual' };
