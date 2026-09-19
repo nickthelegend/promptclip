@@ -5,6 +5,7 @@ const { execFile } = require('child_process');
 const { promisify } = require('util');
 
 const execFileAsync = promisify(execFile);
+app.setName('PromptClip');
 let picker;
 let tray;
 

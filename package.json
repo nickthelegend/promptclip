@@ -26,7 +26,10 @@
         "dmg",
         "zip"
       ],
-      "category": "public.app-category.productivity"
+      "category": "public.app-category.productivity",
+      "extendInfo": {
+        "NSAppleEventsUsageDescription": "PromptClip needs access to Apple Notes to import the prompts you choose to keep locally."
+      }
     },
     "win": {
       "target": [
