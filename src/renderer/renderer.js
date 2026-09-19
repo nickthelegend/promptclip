@@ -5,6 +5,7 @@ function escapeHtml(value) { return value.replace(/[&<>'"]/g, c => ({'&':'&amp;'
 function openEditor(prompt = {}) { editingId = prompt.id || null; $('#title').value = prompt.title || ''; $('#body').value = prompt.body || ''; $('#editor').hidden = false; $('#title').focus(); }
 function closeEditor() { $('#editor').hidden = true; editingId = null; }
 $('#search').oninput = render; $('#add').onclick = () => openEditor(); $('#cancel').onclick = closeEditor;
+$('#import').onclick = async () => { const result = await window.promptclip.importNotes(); $('#status').textContent = result.error || `Imported ${result.count} Apple Notes.`; };
 $('#editor').onsubmit = async (event) => { event.preventDefault(); await window.promptclip.save({ id: editingId, title: $('#title').value, body: $('#body').value }); closeEditor(); };
 document.addEventListener('contextmenu', (event) => { if (event.target.closest('.card')) return; event.preventDefault(); window.promptclip.pickerMenu(); });
 window.promptclip.onPrompts((value) => { prompts = value; render(); }); window.promptclip.onEdit(openEditor); window.promptclip.onNew(() => openEditor()); window.promptclip.onDeleteRequest((id) => { if (confirm('Delete this prompt?')) window.promptclip.remove(id); }); window.promptclip.onNotesImported((result) => { $('#status').textContent = result.error || `Imported ${result.count} Apple Notes.`; });
