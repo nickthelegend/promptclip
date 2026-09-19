@@ -16,13 +16,38 @@
   "build": {
     "appId": "com.promptclip.app",
     "productName": "PromptClip",
-    "files": ["src/**/*", "package.json", "README.md"],
-    "mac": { "target": ["dmg", "zip"], "category": "public.app-category.productivity" },
-    "win": { "target": ["nsis", "portable"] },
-    "linux": { "target": ["AppImage", "deb", "rpm"], "category": "Utility" }
+    "files": [
+      "src/**/*",
+      "package.json",
+      "README.md"
+    ],
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.productivity"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb",
+        "rpm"
+      ],
+      "category": "Utility"
+    }
   },
   "devDependencies": {
     "electron": "^37.4.0",
     "electron-builder": "^26.0.12"
+  },
+  "allowScripts": {
+    "electron@37.10.3": true
   }
 }
