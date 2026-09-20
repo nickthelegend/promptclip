@@ -13,6 +13,8 @@ On first launch PromptClip imports your Apple Notes into its local prompt librar
 
 ## Manage prompts
 
+- Your five most recently copied prompts stay at the top, with timestamps and persistent ordering across restarts.
+- Stable card colors make frequently used prompts easier to recognize at a glance.
 - Right-click a prompt to edit or delete it.
 - Right-click empty space to add a prompt or import Apple Notes.
 - Use the menu bar/system tray icon to open or quit the app.
