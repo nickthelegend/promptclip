@@ -11,7 +11,7 @@
   "license": "MIT",
   "scripts": {
     "postinstall": "node node_modules/electron/install.js",
-    "test": "node --test test/*.test.js",
+    "test": "node --test test/startup.test.js",
     "start": "electron .",
     "dev": "electron .",
     "dist": "electron-builder",

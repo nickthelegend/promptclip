@@ -98,9 +98,10 @@ test('copying persists history atomically and preserves the prompt', async () =>
   state.windows[0].webContents.emit('did-finish-load');
   state.handlers.get('prompts:copy')({}, { id: 'one', body: 'Copy me' });
   assert.equal(state.copy(), 'Copy me');
-  const stored = JSON.parse(state.files.get('/test-data/prompts.json'));
+  const dataPath = path.join('/test-data', 'prompts.json');
+  const stored = JSON.parse(state.files.get(dataPath));
   assert.equal(stored[0].body, 'Copy me');
   assert.equal(stored[0].copyCount, 1);
   assert.ok(stored[0].lastCopiedAt > 0);
-  assert.equal(state.files.has('/test-data/prompts.json.tmp'), false);
+  assert.equal(state.files.has(`${dataPath}.tmp`), false);
 });
