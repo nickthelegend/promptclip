@@ -46,6 +46,7 @@
       ]
     },
     "linux": {
+      "maintainer": "PromptClip contributors <nickthelegend@users.noreply.github.com>",
       "target": [
         "AppImage",
         "deb",
