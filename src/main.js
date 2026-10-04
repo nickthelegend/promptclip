@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Tray, Menu, globalShortcut, ipcMain, clipboard, nativeImage } = require('electron');
+const { app, BrowserWindow, Tray, Menu, globalShortcut, ipcMain, clipboard, nativeImage, screen } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const { execFile } = require('child_process');
@@ -10,6 +10,25 @@ const execFileAsync = promisify(execFile);
 app.setName('PromptClip');
 let picker;
 let tray;
+let pickerReady = false;
+let showWhenReady = false;
+let contextMenuOpen = false;
+
+// Finder, login items and the shortcut must all reach the same running app.
+const isPrimaryInstance = app.requestSingleInstanceLock();
+if (!isPrimaryInstance) app.quit();
+app.on('second-instance', () => showPicker());
+app.on('activate', () => showPicker());
+app.on('before-quit', () => { app.isQuitting = true; });
+
+function logError(context, error) {
+  console.error(context, error);
+  try {
+    const directory = app.getPath('userData');
+    fs.mkdirSync(directory, { recursive: true });
+    fs.appendFileSync(path.join(directory, 'startup.log'), `${new Date().toISOString()} ${context}: ${error?.stack || error}\n`);
+  } catch { /* Logging must never prevent the picker from opening. */ }
+}
 
 const starterPrompts = bundledPrompts.length ? bundledPrompts : [
   { id: 'welcome', title: 'Welcome', body: 'Add a prompt from the + button.', source: 'PromptClip' }
@@ -27,7 +46,10 @@ function readPrompts() {
   catch { return sortByRecent(starterPrompts); }
 }
 function writePrompts(prompts) {
-  fs.writeFileSync(storePath(), JSON.stringify(prompts, null, 2));
+  fs.mkdirSync(path.dirname(storePath()), { recursive: true });
+  const temporaryPath = `${storePath()}.tmp`;
+  fs.writeFileSync(temporaryPath, JSON.stringify(prompts, null, 2));
+  fs.renameSync(temporaryPath, storePath());
   return prompts;
 }
 function sendPrompts() { picker?.webContents.send('prompts:changed', readPrompts()); }
@@ -38,20 +60,38 @@ function createPicker() {
     transparent: true, resizable: false, alwaysOnTop: true, skipTaskbar: true,
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false }
   });
-  picker.loadFile(path.join(__dirname, 'renderer', 'index.html'));
+  picker.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  pickerReady = false;
+  picker.loadFile(path.join(__dirname, 'renderer', 'index.html')).catch((error) => logError('Loading picker', error));
   picker.on('close', (event) => { if (!app.isQuitting) { event.preventDefault(); picker.hide(); } });
-  picker.on('blur', () => { if (!picker.webContents.isDevToolsOpened()) picker.hide(); });
-  picker.webContents.once('did-finish-load', async () => {
+  picker.on('closed', () => { picker = null; pickerReady = false; });
+  picker.on('blur', () => { if (!contextMenuOpen && !picker.webContents.isDevToolsOpened()) picker.hide(); });
+  picker.webContents.on('render-process-gone', (_event, details) => {
+    logError('Picker renderer stopped', details.reason);
+    if (!app.isQuitting) { pickerReady = false; showWhenReady = true; picker.reload(); }
+  });
+  picker.webContents.on('did-finish-load', () => {
+    pickerReady = true;
     sendPrompts();
-    if (process.platform === 'darwin' && !fs.existsSync(storePath())) await importAppleNotes();
+    if (showWhenReady) showPicker();
   });
 }
 function showPicker() {
-  if (!picker) createPicker();
-  picker.showInactive();
+  showWhenReady = true;
+  if (!app.isReady()) return;
+  if (!picker || picker.isDestroyed()) createPicker();
+  if (!pickerReady) return;
+  showWhenReady = false;
+  const { workArea } = screen.getPrimaryDisplay();
+  picker.setPosition(workArea.x + 18, workArea.y + 18);
+  if (picker.isMinimized()) picker.restore();
   picker.setAlwaysOnTop(true, 'floating');
+  picker.show();
+  picker.focus();
   picker.webContents.send('prompts:changed', readPrompts());
+  picker.webContents.send('picker:shown');
 }
+function togglePicker() { if (picker?.isVisible() && picker.isFocused()) picker.hide(); else showPicker(); }
 
 async function importAppleNotes() {
   if (process.platform !== 'darwin') return { error: 'Apple Notes import is available on macOS only.' };
@@ -73,7 +113,7 @@ set AppleScript's text item delimiters to (ASCII character 30)
 return output as text
 end tell`;
   try {
-    const { stdout } = await execFileAsync('osascript', ['-e', script], { maxBuffer: 15 * 1024 * 1024 });
+    const { stdout } = await execFileAsync('osascript', ['-e', script], { maxBuffer: 15 * 1024 * 1024, timeout: 30000 });
     const imported = stdout.trim().split(rs).map((row, index) => {
       const [title, ...body] = row.split(us);
       return { id: `notes-${Date.now()}-${index}`, title: title?.trim() || `Untitled note ${index + 1}`, body: body.join(us).replace(/<[^>]*>/g, '').trim(), source: 'Apple Notes' };
@@ -103,6 +143,7 @@ function createTray() {
 }
 
 ipcMain.handle('prompts:list', () => readPrompts());
+ipcMain.on('picker:hide', () => picker?.hide());
 ipcMain.handle('prompts:copy', (_event, prompt) => {
   clipboard.writeText(cleanPromptText(prompt.body));
   const copiedAt = Date.now();
@@ -123,23 +164,28 @@ ipcMain.handle('prompts:save', (_event, prompt) => {
 ipcMain.handle('prompts:delete', (_event, id) => { writePrompts(readPrompts().filter((item) => item.id !== id)); sendPrompts(); });
 ipcMain.handle('prompts:import-notes', importAppleNotes);
 ipcMain.on('prompts:menu', (event, prompt) => {
+  contextMenuOpen = true;
   Menu.buildFromTemplate([
     { label: 'Edit', click: () => event.sender.send('prompt:edit', prompt) },
     { label: 'Delete', click: () => event.sender.send('prompt:delete-request', prompt.id) }
-  ]).popup({ window: picker });
+  ]).popup({ window: picker, callback: () => { contextMenuOpen = false; } });
 });
 ipcMain.on('picker:menu', (event) => {
+  contextMenuOpen = true;
   Menu.buildFromTemplate([
     { label: 'New prompt', click: () => event.sender.send('prompt:new') },
     { label: 'Import Apple Notes', visible: process.platform === 'darwin', click: async () => event.sender.send('notes:imported', await importAppleNotes()) }
-  ]).popup({ window: picker });
+  ]).popup({ window: picker, callback: () => { contextMenuOpen = false; } });
 });
 
 app.whenReady().then(() => {
-  app.setLoginItemSettings({ openAtLogin: true, openAsHidden: true });
+  if (!isPrimaryInstance) return;
+  try { app.setLoginItemSettings({ openAtLogin: true, args: ['--background'] }); }
+  catch (error) { logError('Configuring login startup', error); }
   createPicker(); createTray();
-  globalShortcut.register('CommandOrControl+Shift+Space', showPicker);
-  app.on('activate', showPicker);
-});
+  if (!globalShortcut.register('CommandOrControl+Shift+Space', togglePicker)) logError('Registering shortcut', 'Shortcut is already in use. Open from the tray or Dock.');
+  const loginLaunch = process.platform === 'darwin' && app.getLoginItemSettings().wasOpenedAtLogin;
+  if (showWhenReady || (!loginLaunch && !process.argv.includes('--background'))) showPicker();
+}).catch((error) => logError('Starting PromptClip', error));
 app.on('window-all-closed', (event) => event.preventDefault());
 app.on('will-quit', () => globalShortcut.unregisterAll());

@@ -1,11 +1,17 @@
 {
   "name": "promptclip",
-  "version": "1.0.0",
+  "version": "1.0.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nickthelegend/promptclip.git"
+  },
   "description": "A background prompt picker for your clipboard.",
   "main": "src/main.js",
   "author": "PromptClip",
   "license": "MIT",
   "scripts": {
+    "postinstall": "node node_modules/electron/install.js",
+    "test": "node --test test/*.test.js",
     "start": "electron .",
     "dev": "electron .",
     "dist": "electron-builder",
@@ -49,10 +55,7 @@
     }
   },
   "devDependencies": {
-    "electron": "^37.4.0",
+    "electron": "44.5.1",
     "electron-builder": "^26.0.12"
-  },
-  "allowScripts": {
-    "electron@37.10.3": true
   }
 }

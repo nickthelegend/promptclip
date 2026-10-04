@@ -4,6 +4,8 @@ contextBridge.exposeInMainWorld('promptclip', {
   save: (prompt) => ipcRenderer.invoke('prompts:save', prompt), remove: (id) => ipcRenderer.invoke('prompts:delete', id),
   importNotes: () => ipcRenderer.invoke('prompts:import-notes'), menu: (prompt) => ipcRenderer.send('prompts:menu', prompt), pickerMenu: () => ipcRenderer.send('picker:menu'),
   onPrompts: (callback) => ipcRenderer.on('prompts:changed', (_e, prompts) => callback(prompts)),
+  hide: () => ipcRenderer.send('picker:hide'),
+  onShown: (callback) => ipcRenderer.on('picker:shown', callback),
   onEdit: (callback) => ipcRenderer.on('prompt:edit', (_e, prompt) => callback(prompt)),
   onNew: (callback) => ipcRenderer.on('prompt:new', callback),
   onDeleteRequest: (callback) => ipcRenderer.on('prompt:delete-request', (_e, id) => callback(id)),

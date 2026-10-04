@@ -16,7 +16,10 @@ function createCard(prompt, isRecent) {
   el.setAttribute('role', 'button');
   el.setAttribute('aria-label', `Copy ${prompt.title}`);
   el.innerHTML = `<div class="card-title"><h2>${escapeHtml(prompt.title)}</h2>${isRecent ? '<span class="recent-badge">Recent</span>' : ''}</div><p>${escapeHtml(prompt.body)}</p><footer><small><i aria-hidden="true"></i>${escapeHtml(prompt.source || 'Manual')}</small>${isRecent ? `<time datetime="${new Date(prompt.lastCopiedAt).toISOString()}">${relativeTime(prompt.lastCopiedAt)}</time>` : ''}</footer>`;
-  const copy = async () => { await window.promptclip.copy(prompt); };
+  const copy = async () => {
+    try { await window.promptclip.copy(prompt); }
+    catch { $('#status').textContent = 'Could not save copy history. Try copying again.'; }
+  };
   el.onclick = copy;
   el.onkeydown = (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); copy(); } };
   el.oncontextmenu = (event) => { event.preventDefault(); window.promptclip.menu(prompt); };
@@ -49,3 +52,16 @@ $('#editor').onsubmit = async (event) => { event.preventDefault(); await window.
 document.addEventListener('contextmenu', (event) => { if (event.target.closest('.card')) return; event.preventDefault(); window.promptclip.pickerMenu(); });
 window.promptclip.onPrompts((value) => { prompts = value; render(); }); window.promptclip.onEdit(openEditor); window.promptclip.onNew(() => openEditor()); window.promptclip.onDeleteRequest((id) => { if (confirm('Delete this prompt?')) window.promptclip.remove(id); }); window.promptclip.onNotesImported((result) => { $('#status').textContent = result.error || `Imported ${result.count} Apple Notes.`; });
 window.promptclip.list().then((value) => { prompts = value; render(); });
+window.promptclip.onShown(() => {
+  if (!$('#editor').hidden) { $('#title').focus(); return; }
+  $('#search').value = '';
+  render();
+  $('#list').scrollTop = 0;
+  $('#search').focus();
+});
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+    if (!$('#editor').hidden) closeEditor();
+    else window.promptclip.hide();
+  }
+});

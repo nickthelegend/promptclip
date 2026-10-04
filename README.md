@@ -2,6 +2,8 @@
 
 A background desktop prompt picker. Press `⌘/Ctrl + Shift + Space`, select a prompt, and it is copied to the clipboard. PromptClip stays in the menu bar/system tray after its picker is closed.
 
+Opening the app shows the picker and focuses search. The shortcut toggles it, and Escape hides it. At login it starts quietly in the background; opening it again brings the existing picker forward.
+
 ## Run locally
 
 ```bash
@@ -9,7 +11,7 @@ npm install
 npm start
 ```
 
-On first launch PromptClip imports your Apple Notes into its local prompt library on macOS. You can repeat that from the picker menu. Notes are read locally through macOS; nothing is uploaded by the app.
+On first launch PromptClip loads the bundled prompt library. Import Apple Notes from the picker menu on macOS. Notes are read locally through macOS; nothing is uploaded by the app.
 
 ## Manage prompts
 
